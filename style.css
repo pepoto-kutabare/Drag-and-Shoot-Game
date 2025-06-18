@@ -1,0 +1,341 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+@import url(https://fonts.googleapis.com/css?family=Open+Sans:400,700);
+body {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(#003, #000);
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    overflow: scroll; /* Prevent scrolling if canvas slightly overflows */
+}
+.game-container {
+    background-color: #2d3748; /* Darker grey for container */
+    border-radius: 1rem; /* Rounded corners for the container */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 5px solid var(--color-alpha);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative; /* For message box positioning */
+    width: 50%; /* Responsive width */
+    max-width: 40em; /* Max width for desktop */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+canvas {
+    background-color: #6272ac; /* Sky blue */
+    border: 5px solid var(--color-alpha);
+    border-radius: 0.75rem; /* Rounded corners for canvas */
+    display: block;
+    touch-action: none; /* Prevent browser touch actions like scrolling/zooming */
+    width: 100%; /* Make canvas responsive */
+    height: 27rem; /* Fixed height for consistency, adjust as needed */
+    margin-bottom: 1rem;
+}
+.game-info {
+    color: #e2e8f0; /* Light text color */
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+.control-buttons button {
+    background-color: #b3e0b3; /* Green button */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.control-buttons button:hover {
+    background-color: #a4b143;
+    transform: translateY(-2px);
+}
+.control-buttons button:active {
+    background-color: #a4b143;
+    transform: translateY(0);
+}
+
+/* Message Box Styling */
+.message-box-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    border-radius: 1rem; /* Match container border-radius */
+}
+.message-box {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    max-width: 350px;
+    width: 90%;
+}
+.message-box h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #2d3748;
+}
+.message-box p {
+    margin-bottom: 1.5rem;
+    color: #4a5568;
+}
+.message-box button {
+    background-color: #a4b143; /* Blue button */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 10px;
+    background-color: orange;
+}
+.message-box button:hover {
+    background-color: #a4b143;
+}
+.video-container {
+    background-color: pink;
+    width: 90%;
+    height: 5px;
+}
+.character-selection {
+    background-color: green;
+    padding: 10px;
+    width: 95%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+}
+.character-menu {
+    max-width: 30%;
+    display:flex;
+    justify-content: space-between; /* Center the icons */
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    margin-right: 1px;
+    height: 35rem;
+}
+.character-icon {
+  width: 6.6em; /* Slightly larger icons */
+  height: 10.6em;
+  border: 3px solid #666; /* Thicker border */
+  cursor: pointer;
+  border-radius: 15px; /* More rounded corners */
+  overflow: hidden;
+  transition: all 0.2s ease-in-out; /* Smooth transition for hover effects */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* Subtle shadow */
+  padding: 0.3em;
+  margin-bottom: 0.5em;
+}
+.infocard {
+  width: 23%;
+  background: #333;
+  padding: 25px; /* More padding */
+  border-radius: 18px; /* Even more rounded corners */
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4); /* Deeper shadow */
+  text-align: center; /* Center content within the card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s ease-in-out; /* Smooth transition for content changes */
+  height: 37rem;
+   border: 5px solid var(--color-alpha);
+}
+.character-card {
+    background-color: black;
+    
+}
+.character-menu h1 {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.08em;
+  font-size: 1.6em;
+  color: #eef5d1; /* A nice blue for the heading */
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.character-icon:hover {
+  border-color: #eef5d1; /* Highlight on hover */
+  transform: translateY(-5px); /* Lift effect on hover */
+  box-shadow: 0 6px 12px rgba(0,0,0,0.5); /* Enhanced shadow on hover */
+}
+.character-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block; /* Remove extra space below image */
+  border-radius: 10%;
+}
+
+.infocard h2 {
+  color: #eef5d1;
+  font-size: 1.3em;
+  margin-top: 0;
+  margin-bottom: 0.1em;
+}
+.infocard h3 {
+  color: #eef5d1;
+  font-size: 1.05em;
+  margin-top: 0.1em;
+}
+.infocard img {
+  width: 100%; /* Larger image in infocard */
+  height: 10em; /* Ensure aspect ratio */
+  border-radius: 10%; /* Make image circular */
+  border: 3px solid #eef5d1; /* Border for the image */
+  margin-bottom: 15px;
+  object-fit: cover;
+}
+.infocard .gazaslim p {
+  line-height: 1.6em;
+  color: #e0e0e0;
+  text-align: left;
+  vertical-align: middle;
+  display: table-cell;
+  white-space: normal;
+  word-wrap: break-word; 
+  max-width: 19.6em;  
+}
+.infocard .gazaslim {
+    display:table ;
+    height: 35em;
+    width: 19.6em;
+    max-width: 18em;
+    padding: 0;
+    margin: 0;
+}
+.video-container{
+    width: 95%;
+    padding: 1em;
+    margin: 2em;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    gap: 5em;
+  /* To adjust the height as well */ 
+  height: fit-content;
+}
+video {
+    width: 40%;
+    margin:0.3em;
+}
+#hide {
+  width: 22.9%;
+  background: #333;
+  padding: 25px; /* More padding */
+  border-radius: 18px; /* Even more rounded corners */
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4); /* Deeper shadow */
+  text-align: center; /* Center content within the card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s ease-in-out; /* Smooth transition for content changes */
+  height: 37rem;
+  position: absolute;
+  margin-left: 30.1%;
+   display: flex;
+   justify-content: center;
+   border: 5px solid var(--color-alpha);
+   writing-mode: vertical-lr;
+   font-size: 3em;
+   color: #ffffff;
+
+}
+#hide p {
+    text-orientation: mixed;
+    writing-mode: vertical-rl;
+    color: #ffffff;
+}
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,700');
+
+:root {
+  --color-alpha: #b78846;
+}
+
+.box {
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 5px solid var(--color-alpha);
+ border-radius: 10px;
+}
+
+.box::before,
+.box::after {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  color: var(--color-alpha);
+  border: 2px solid var(--color-alpha);
+  line-height: 12px;
+  top: 5px;
+  text-align: center;
+  background: transparent;
+
+}
+
+.box::before {
+  left: 5px;
+}
+
+.box::after {
+  right: 5px;
+}
+
+.box-inner {
+  position: relative;
+  border: 1px solid var(--color-alpha);
+}
+
+.box-inner::before,
+.box-inner::after {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  color: var(--color-alpha);
+  border: 2px solid var(--color-alpha);
+  line-height: 12px;
+  bottom: -2px;
+  text-align: center;
+  background: transparent;
+}
+
+.box-inner::before {
+  left: -2px;
+}
+
+.box-inner::after {
+  right: -2px;
+}
+.zashto p {
+    color: #eef5d1;
+}
+.zashto {
+    width: 50%;
+    font-size: 1.2em;
+}

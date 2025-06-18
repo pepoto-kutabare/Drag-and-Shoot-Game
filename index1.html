@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Shoot Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <header></header>
+    <div class ="video-container"></div>
+    <div class="character-selection">
+      <div class="character-menu">
+        <h1>Select Your Character</h1>
+        <div class="character-icon" onclick="showCharacter('knight')">
+          <img src="https://placehold.co/90x90/555/FFF?text=Knight" alt="Knight">
+        </div>
+        <div class="character-icon" onclick="showCharacter('mage')">
+          <img src="https://placehold.co/90x90/555/FFF?text=Mage" alt="Mage">
+        </div>
+        <div class="character-icon" onclick="showCharacter('rogue')">
+          <img src="https://placehold.co/90x90/555/FFF?text=Rogue" alt="Rogue">
+        </div>
+      </div>
+     <div class="infocard" id="infocard">
+        <h2>Select a character</h2>
+        <p>Click on a character icon to see their info.</p>
+      </div>
+        <div class="game-container">
+        <div class="game-info" id="scoreDisplay">Score: 0</div>
+        <canvas id="gameCanvas"></canvas>
+        <div class="control-buttons">
+            <button id="resetButton">Reset Game</button>
+        </div>
+
+        <!-- Custom Message Box -->
+        <div id="messageBoxOverlay" class="message-box-overlay hidden">
+            <div class="message-box">
+                <h3 id="messageBoxTitle"></h3>
+                <p id="messageBoxContent"></p>
+                <button id="messageBoxOkButton">OK</button>
+            </div>
+        </div>
+    </div>
+    </div>
+   
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const resetButton = document.getElementById('resetButton');
+        const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+        const messageBoxTitle = document.getElementById('messageBoxTitle');
+        const messageBoxContent = document.getElementById('messageBoxContent');
+        const messageBoxOkButton = document.getElementById('messageBoxOkButton');
+
+        // Game state variables
+        let isDragging = false;
+        let startDragX, startDragY; // Starting point of the drag (typically the shooter's center)
+        let currentDragX, currentDragY; // Current mouse/touch position during drag
+        let projectiles = []; // Array to hold active projectiles
+        let targets = []; // Array to hold active targets
+        let score = 0;
+        const GRAVITY = 0.1; // Gravity constant
+        const MAX_SHOT_POWER = 15; // Max speed for the projectile
+
+        // Game Objects
+        const shooter = {
+            x: 70, // Shooter fixed position
+            y: 0, // Y will be set after canvas is sized
+            radius: 15,
+            color: '#d53f8c' // Pink
+        };
+
+        const ground = {
+            height: 20,
+            color: '#6b46c1' // Purple
+        };
+
+        // --- Utility Functions ---
+
+        /**
+         * Displays a custom message box.
+         * @param {string} title - The title of the message box.
+         * @param {string} message - The content of the message.
+         */
+        function showMessageBox(title, message) {
+            messageBoxTitle.textContent = title;
+            messageBoxContent.textContent = message;
+            messageBoxOverlay.classList.remove('hidden');
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBoxOverlay.classList.add('hidden');
+        }
+
+        /**
+         * Adjusts canvas size and game element positions based on current window size.
+         * Called on initial load and window resize.
+         */
+        function resizeCanvas() {
+            // Get the computed style of the canvas to ensure it takes its CSS width/height
+            const computedStyle = getComputedStyle(canvas);
+            canvas.width = parseFloat(computedStyle.width);
+            canvas.height = parseFloat(computedStyle.height);
+
+            // Set shooter position relative to canvas bottom
+            shooter.y = canvas.height - ground.height - shooter.radius - 5; // A little above ground
+            startDragX = shooter.x;
+            startDragY = shooter.y;
+
+            // Re-initialize targets to ensure they are within new bounds
+            initializeTargets();
+        }
+
+        /**
+         * Initializes targets for the game.
+         */
+        function initializeTargets() {
+            targets = []; // Clear existing targets
+            const numTargets = 3;
+            const targetWidth = 30;
+            const targetHeight = 40;
+            const targetSpacing = (canvas.width - numTargets * targetWidth) / (numTargets + 1);
+
+            for (let i = 0; i < numTargets; i++) {
+                targets.push({
+                    x: targetSpacing * (i + 1) + i * targetWidth,
+                    y: canvas.height - ground.height - targetHeight, // On the ground
+                    width: targetWidth,
+                    height: targetHeight,
+                    color: '#f6ad55', // Orange
+                    hit: false
+                });
+            }
+        }
+
+        /**
+         * Draws the game elements on the canvas.
+         */
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            ctx.fillStyle = ground.color;
+            ctx.fillRect(0, canvas.height - ground.height, canvas.width, ground.height);
+
+            // Draw shooter
+            ctx.beginPath();
+            ctx.arc(shooter.x, shooter.y, shooter.radius, 0, Math.PI * 2);
+            ctx.fillStyle = shooter.color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke(); // Add a white border
+
+            // Draw aiming line if dragging
+            if (isDragging) {
+                ctx.beginPath();
+                ctx.moveTo(startDragX, startDragY);
+                ctx.lineTo(currentDragX, currentDragY);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; // White aiming line with transparency
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Draw an arrow head to indicate direction of shot
+                const angle = Math.atan2(currentDragY - startDragY, currentDragX - startDragX);
+                const arrowSize = 15;
+                ctx.save();
+                ctx.translate(currentDragX, currentDragY);
+                ctx.rotate(angle);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-arrowSize, -arrowSize / 2);
+                ctx.lineTo(-arrowSize, -arrowSize / 2);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Draw projectiles
+            projectiles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // Draw targets
+            targets.forEach(t => {
+                if (!t.hit) {
+                    ctx.fillStyle = t.color;
+                    ctx.fillRect(t.x, t.y, t.width, t.height);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(t.x, t.y, t.width, t.height);
+                }
+            });
+        }
+
+        /**
+         * Updates the game state (projectile positions, collisions).
+         */
+        function update() {
+            // Update projectile positions
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+
+                // Apply gravity
+                p.velocityY += GRAVITY;
+
+                // Update position
+                p.x += p.velocityX;
+                p.y += p.velocityY;
+
+                // Collision with ground
+                if (p.y + p.radius > canvas.height - ground.height) {
+                    p.y = canvas.height - ground.height - p.radius;
+                    p.velocityY *= -0.5; // Bounce with some energy loss
+                    p.velocityX *= 0.5; // Friction
+
+                    if (Math.abs(p.velocityY) < 0.5 && Math.abs(p.velocityX) < 0.5) {
+                        projectiles.splice(i, 1); // Stop if nearly still on ground
+                        continue;
+                    }
+                }
+
+                // Collision with canvas edges (left/right/top)
+                if (p.x - p.radius < 0 || p.x + p.radius > canvas.width) {
+                    p.velocityX *= -1; // Bounce off side walls
+                    p.x = Math.max(p.radius, Math.min(p.x, canvas.width - p.radius)); // Correct position
+                }
+                if (p.y - p.radius < 0) {
+                    p.velocityY *= -1; // Bounce off top wall
+                    p.y = p.radius; // Correct position
+                }
+
+                // Collision with targets
+                for (let j = 0; j < targets.length; j++) {
+                    const t = targets[j];
+                    if (!t.hit && p.x + p.radius > t.x && p.x - p.radius < t.x + t.width &&
+                        p.y + p.radius > t.y && p.y - p.radius < t.y + t.height) {
+                        t.hit = true; // Mark target as hit
+                        score += 10;
+                        scoreDisplay.textContent = `Score: ${score}`;
+                        projectiles.splice(i, 1); // Remove projectile
+                        break; // Move to next projectile
+                    }
+                }
+
+                // Remove projectiles that have left the screen for good (e.g., fell off after bouncing)
+                if (p.x < -p.radius || p.x > canvas.width + p.radius || p.y > canvas.height + p.radius) {
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            // Check if all targets are hit
+            //if (targets.every(t => t.hit) && targets.length > 0) {
+                //showMessageBox("Game Over!", `You hit all targets! Final Score: ${score}`);
+                // Potentially stop game loop or offer restart immediately
+            //}
+        }
+
+        /**
+         * Main game loop. Calls update and draw functions.
+         */
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Event Listeners ---
+
+        // Mouse/Touch start drag
+        canvas.addEventListener('mousedown', (e) => {
+            // Only start drag if click is near the shooter
+            const dist = Math.sqrt(Math.pow(e.offsetX - shooter.x, 2) + Math.pow(e.offsetY - shooter.y, 2));
+            if (dist < shooter.radius * 2) { // Allow a bit of leeway
+                isDragging = true;
+                startDragX = shooter.x;
+                startDragY = shooter.y;
+                currentDragX = e.offsetX;
+                currentDragY = e.offsetY;
+            }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent default touch actions (like scrolling)
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+
+            const dist = Math.sqrt(Math.pow(touchX - shooter.x, 2) + Math.pow(touchY - shooter.y, 2));
+            if (dist < shooter.radius * 2) {
+                isDragging = true;
+                startDragX = shooter.x;
+                startDragY = shooter.y;
+                currentDragX = touchX;
+                currentDragY = touchY;
+            }
+        }, { passive: false }); // Use passive: false to allow preventDefault
+
+        // Mouse/Touch move during drag
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            currentDragX = e.offsetX;
+            currentDragY = e.offsetY;
+            draw(); // Redraw immediately to show updated aiming line
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault(); // Prevent default touch actions
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            currentDragX = touch.clientX - rect.left;
+            currentDragY = touch.clientY - rect.top;
+            draw(); // Redraw immediately to show updated aiming line
+        }, { passive: false });
+
+        // Mouse/Touch end drag (shoot)
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            // Calculate direction and magnitude
+            // The drag vector is from shooter to current mouse pos (end of drag line)
+            // The shot vector is in the opposite direction for slingshot effect
+            const dx = startDragX - currentDragX;
+            const dy = startDragY - currentDragY;
+
+            let magnitude = Math.sqrt(dx * dx + dy * dy);
+            // Cap the power based on MAX_SHOT_POWER
+            let speed = Math.min(magnitude / 5, MAX_SHOT_POWER); // Divide by a factor to control sensitivity
+
+            // Create projectile
+            projectiles.push({
+                x: shooter.x,
+                y: shooter.y,
+                radius: 8,
+                velocityX: (dx / magnitude) * speed || 0, // Handle case where magnitude is 0
+                velocityY: (dy / magnitude) * speed || 0,
+                color: '#feb2b2' // Light Red
+            });
+
+            draw(); // Redraw immediately to clear aiming line
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            // Calculate direction and magnitude
+            const dx = startDragX - currentDragX;
+            const dy = startDragY - currentDragY;
+
+            let magnitude = Math.sqrt(dx * dx + dy * dy);
+            let speed = Math.min(magnitude / 5, MAX_SHOT_POWER);
+
+            projectiles.push({
+                x: shooter.x,
+                y: shooter.y,
+                radius: 8,
+                velocityX: (dx / magnitude) * speed || 0,
+                velocityY: (dy / magnitude) * speed || 0,
+                color: '#feb2b2'
+            });
+
+            draw();
+        });
+
+
+        // Reset Button
+        resetButton.addEventListener('click', () => {
+            score = 0;
+            scoreDisplay.textContent = `Score: ${score}`;
+            projectiles = []; // Clear all projectiles
+            initializeTargets(); // Re-initialize targets
+            draw(); // Redraw the cleaned state
+            hideMessageBox(); // Ensure message box is hidden on reset
+        });
+
+        // OK button for custom message box
+        messageBoxOkButton.addEventListener('click', hideMessageBox);
+
+        // --- Initialization ---
+        window.onload = function() {
+            resizeCanvas(); // Set initial canvas size and element positions
+            initializeTargets(); // Create targets
+            gameLoop(); // Start the game loop
+        };
+
+        // Handle window resizing
+        window.addEventListener('resize', resizeCanvas);
+
+        //Character Selection
+
+        const characters = {
+          knight: {
+            name: "Knight",
+            image: "https://placehold.co/120x120/00bcd4/FFF?text=Knight",
+            description: "A brave warrior with high defense and formidable sword skills, leading the charge with unwavering courage."
+          },
+          mage: {
+            name: "Mage",
+            image: "https://placehold.co/120x120/00bcd4/FFF?text=Mage",
+            description: "A master of elemental magic, capable of unleashing powerful spells that devastate foes from a distance."
+          },
+          rogue: {
+            name: "Rogue",
+            image: "https://placehold.co/120x120/00bcd4/FFF?text=Rogue",
+            description: "A stealthy assassin with lightning-fast attacks and unparalleled agility, specializing in critical strikes."
+          }
+        };
+
+        /**
+         * Updates the information card with details of the selected character.
+         * @param {string} key - The key identifying the character (e.g., 'knight', 'mage', 'rogue').
+         */
+        function showCharacter(key) {
+          const char = characters[key];
+          const card = document.getElementById("infocard");
+
+          // Update the inner HTML of the infocard with the selected character's details.
+          card.innerHTML = `
+            <h2>${char.name}</h2>
+            <img src="${char.image}" alt="${char.name}">
+            <p>${char.description}</p>
+          `;
+        }
+
+    </script>
+</body>
+</html>

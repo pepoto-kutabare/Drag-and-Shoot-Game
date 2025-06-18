@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drag and Shoot Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header></header>
+  <div class="video-container box ">
+    <video controls class="box">
+    <source src="videoplayback.mp4" type="video/mp4">
+    </video>
+      <div class="zashto">
+        <p>After collecting numerous points of information about the rises and falls of Democratic and Authoritarian regimes we have created our own digital product. This digital product serves as ourapplication of the historical principles we've learned to our own geopolitical and historical opinions. In simpler terms the clicker game below expresses how we perceive those leaders work with the pillars of democracy.  <br><br> Some tear them apart, some build them up gloriously and unexpectedly. <br> <br> The pillars of democracy might not be the ones accepted by most academics but they are the ones we initially thought of as a group and we felt it would also be important to reflect on what we achieved, learned and experienced as a group of students with different backgrounds. Do enjoy.</p>
+      </div>
+  </div>
+  </video>
+  <div class="character-selection box ">
+    <div class="character-menu">
+      <h1>Pillars Of Democracy</h1>
+      <div class="character-icon box-inner" onclick="showCharacter('trump');Hide()">
+        <img src="trump.png" alt="Trump" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('cyrus');Hide()">
+        <img src="cyrus.png" alt="Cyrus" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('putin');Hide()">
+        <img src="putin.png" alt="Putin" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('boiko');Hide()">
+        <img src="boiko.png" alt="Boiko" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('mbasogo');Hide()">
+        <img src="mbasogo.png" alt="Mbasogo" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('philippe');Hide()">
+        <img src="philippe.png" alt="Philippe" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('oranje');Hide()">
+        <img src="oranje.png" alt="Oranje" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('raisi');Hide()">
+        <img src="raisi.png" alt="Raisi" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('jinping');Hide()">
+        <img src="jinping.png" alt="Jinping" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('solon');Hide()">
+        <img src="solon.png" alt="Solon" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('zelenski');Hide()">
+        <img src="zelensky.png" alt="Zelenskyy" />
+      </div>
+      <div class="character-icon box-inner" onclick="showCharacter('sankara');Hide()">
+        <img src="sankara.png" alt="Sankara" />
+      </div>
+    </div>
+    <div id="hide">
+        <h3>SELECT A LEADER</h3>
+      </div>
+    <div class="infocard" id="infocard"> 
+      <img src="question.png" alt="question mark" class="infoimage">
+      <h2>Select a character</h2>
+      <h3>Title</h3>
+      <div class="gazaslim">
+        <p>Click on a character icon to see their info.</p>
+      </div>
+    </div>
+    <div class="game-container">
+      <div class="game-info" id="scoreDisplay">Score: 0</div>
+      <canvas id="gameCanvas"></canvas>
+      <div class="control-buttons">
+        <button id="resetButton">Reset Game</button>
+      </div>
+      <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+          <h3 id="messageBoxTitle"></h3>
+          <p id="messageBoxContent"></p>
+          <button id="messageBoxOkButton">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const resetButton = document.getElementById("resetButton");
+    const messageBoxOverlay = document.getElementById("messageBoxOverlay");
+    const messageBoxTitle = document.getElementById("messageBoxTitle");
+    const messageBoxContent = document.getElementById("messageBoxContent");
+    const messageBoxOkButton = document.getElementById("messageBoxOkButton");
+
+    let isDragging = false;
+    let startDragX, startDragY, currentDragX, currentDragY;
+    let projectiles = [];
+    let targets = [];
+    let score = 0;
+    let selectedCharacter = 'oranje';
+
+    const GRAVITY = 0.1;
+    const MAX_SHOT_POWER = 15;
+
+    const shooter = {
+      x: 70,
+      y: 0,
+      radius: 15,
+      color: '#e7f2e4'
+    };
+
+    const ground = {
+      height: 40,
+      color: '#eef5d1'
+    };
+
+    const characters = {
+      trump: {
+        name: 'Donald Trump',
+        title: 'USA,2017-2021;2025-present',
+        description: 'His leadership contains markers of freedom of speech and press becoming fiercely contested. Supporters deem his outspoken deemage of unfavourable coverage as "fake news" as defense of free expression. His recent drastic approaches stir intense public debates and outrage. He remains an example of how easily a democracy can begin to fall.',
+        image: 'trump1.png'
+      },
+      cyrus: {
+        name: 'Cyrus the Great',
+        title: 'Persia,559-530 BCE',
+        description: 'Despite being an ancient and a currently irrelevant figure, his efforts remain notable for pioneering the earliest forms of religious freedom, diversity and pluralistic governance. His socially-cohesive approach managed to leave behind a strong-standing positive legacy. While not democratic, his reign leaves room for thought where the respect for inclusivity has went.',
+        image: 'cyrus1.png'
+      },
+      putin: {
+        name: 'Vladimir Putin',
+        title: 'Russia,1999-present',
+        description: 'Reign characterized by ever-growing centralization of power, tight control over press and systematic repression of freedom of speech. Scientific and individual expression faces violent limitations to align with state priorities. Separation of powers remains completely artificial, though it was not like that in the beginning of his reign. Pluralism seems to have been sacrificed',
+        image: 'putin1.png'
+      },
+      sankara: {
+        name: 'Thomas Sankara',
+        title: 'Burkina Faso,1983-1987',
+        description: 'Ironically a coup-acquired leadership managed to focus on radical social reform, empowering marginalized groups and promoting self-reliance. Literacy and vaccinaton skyrocketed along with scientific progress. However, centralized decision-making limited political pluralism. His unique vision highlighted the complex relationship between expanding freedoms and maintaining unity',
+        image: 'sankara1.png'
+      },
+      boiko: {
+        name: 'Boiko Borisov',
+        title: 'Bulgaria,2009-2021',
+        description: 'His tenure faced criticism over media influence and judicial independence, raising concerns about press freedom and dangerously decreasing financial and moral transparency and political pluralism. He remains an important reflection of the fragile nature of democratic institutions when confronted with pressures on freedom of expression and institutional checks.',
+        image: 'boiko1.png'
+      },
+      mbasogo: {
+        name: 'Teodor Obiang Nguema Mbasogo',
+        title: 'Equatorial Guinea,1979-present',
+        description: 'The longest running alive leader severely limits political freedoms. Tight control over media and suppression of dissent restrics media and weakenins trias politica. Although his rule can be considered an improvement, given past brutal history, undermining of institutional checks and democratic accountability is prevalent.',
+        image: 'mbasogo1.png'
+      },
+      philippe: {
+        name: 'King Louis Philippe',
+        title: 'France,1830-1848',
+        description: 'His tenure reflected the struggle between democratic aspirations and conservative forces as almost the whole population was excluded from voting. Political expression and press freedoms became contested arenas, illustrating the tensions inherent in early democratic reform and the idea that democracy is not always a necessary starting point for national development',
+        image: 'philippe1.png'
+      },
+      guevara: {
+        name: 'Che Guevara',
+        title: 'Cuba,1959-1965',
+        description: 'A stealthy assassin with lightning-fast attacks and agility. ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg',
+        image: 'trump1.png'
+      },
+      zhivkov: {
+        name: 'Todor Zhivkov',
+        title: 'Bulgaria,1954-1989',
+        description: 'A stealthy assassin with lightning-fast attacks and agility. ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg',
+        image: 'trump1.png'
+      },
+      zedong: {
+        name: 'Mao Zedong',
+        title: 'China,1949-1976',
+        description: 'A stealthy assassin with lightning-fast attacks and agility. ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg',
+        image: 'trump1.png'
+      },
+      oranje: {
+        name: 'Wilhelmina van Oranje',
+        title: 'Netherlands,1890-1948',
+        description: 'Wilhelmina symbolized continuity and stability in crisis without directintervention. By respecting authority and avoiding partisanship, she reinforced democratic norms and unity. Her role highlights how leadership can strengthen trust in governance, supporting freedom through steady stewardship and the protection of democratic institutions during uncertain times.',
+        image: 'oranje1.png'
+      },
+      raisi: {
+        name: 'Ebrahim Raisi',
+        title: 'Iran,2021-2024',
+        description: 'A consolidation of power with significant limitations on religious freedom, press, and political dissent. Under his rule, independent media faces heavy restrictions, and the judiciary is closely aligned with executive authority. Religious and cultural freedoms operate along strict state controls and tension between authoritarian control and democratic ideals like pluralism and transparency.',
+        image: 'raisi1.png'
+      },
+      jinping: {
+        name: 'Xi Jinping',
+        title: 'China,2012-present',
+        description: 'Jinping’s rule features central control, restricting speech, press, and academic freedoms through censorship and surveillance. Religious and scientific expression operate under strict state oversight. While emphasizing stability and development, his leadership limits democratic openness, reflecting tension between authoritarian control and democratic freedoms.',
+        image: 'jinping1.png'
+      },
+      thatcher: {
+        name: 'Margaret Thatcher',
+        title: 'United Kingdom, 1979-1990',
+        description: 'A stealthy assassin with lightning-fast attacks and agility. ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg',
+        image: 'trump1.png'
+      },
+      solon: {
+        name: 'Solon',
+        title: 'Ancient Athens',
+        description: 'Solon laid foundational reforms limiting aristocratic power and promoting accountability. By codifying laws, he advanced early democratic ideals. His emphasis on balanced governance and transparency laid groundwork for division of powers and civic engagement, demonstrating how democracy requires citizen involvement.',
+        image: 'solon1.png'
+      },
+      zelenski: {
+        name: 'Volodymyr Zelenskyy',
+        title: 'Ukraine,2019-present',
+        description: 'Originally communicator-turned-leader, his unique story promotes transparency and media freedom under intense external pressure. Balancing national security and civil liberties, he sought to preserve open discourse and resilient governance, highlighting democracy’s vulnerability during conflict and the importance of safeguarding free speech and accountability.',
+        image: 'zelensky1.png'
+      }
+
+    };
+
+    const characterAbilities = {
+      trump: { canBuild: [4], canDestroy: [1, 2, 3, 5] },
+      putin:   { canBuild: [],        canDestroy: [1, 2, 3, 4, 5] },
+      cyrus:  { canBuild: [1, 2, 5],    canDestroy: [3, 4] },
+      sankara:  { canBuild: [1, 2, 5],    canDestroy: [3, 4] },
+      cyrus:  { canBuild: [1, 2, 5],    canDestroy: [3, 4] },
+      philippe:  { canBuild: [1, 4],    canDestroy: [2, 3, 5] },
+      boiko:  { canBuild: [1, 3],    canDestroy: [2, 4, 5] },
+      mbasogo:  { canBuild: [],        canDestroy: [1, 2, 3, 4, 5] },
+      oranje:  { canBuild: [1, 2, 3, 4, 5],    canDestroy: [] },
+      raisi:  { canBuild: [],    canDestroy: [1,2,3,4,5] },
+      jinping:  { canBuild: [],    canDestroy: [1,2,3,4,5] },
+      solon:  { canBuild: [1, 2, 3, 4, 5],    canDestroy: [] },
+      zelenski:  {canBuild: [1, 2, 4, 5],    canDestroy: [3] }
+    };
+
+    function showCharacter(key) {
+      selectedCharacter = key;
+      const char = characters[key];
+      const card = document.getElementById("infocard");
+      card.innerHTML = `
+        <img src="${char.image}" alt="question mark" class="infoimage">
+        <h2>${char.name}</h2>
+        <h3>${char.title}</h3>
+        <div class="gazaslim">
+         <p>${char.description}</p>
+        </div>
+        
+      `;
+      score = 0;
+      scoreDisplay.textContent = `Score: ${score}`;
+      initializeTargets();
+    }
+    function Hide() {
+      var x = document.getElementById("hide");
+        x.style.display = "none";
+    }
+    function showMessageBox(title, message) {
+      messageBoxTitle.textContent = title;
+      messageBoxContent.textContent = message;
+      messageBoxOverlay.classList.remove('hidden');
+    }
+
+    function hideMessageBox() {
+      messageBoxOverlay.classList.add('hidden');
+    }
+
+    function resizeCanvas() {
+      const computedStyle = getComputedStyle(canvas);
+      canvas.width = parseFloat(computedStyle.width);
+      canvas.height = parseFloat(computedStyle.height);
+      shooter.y = canvas.height - ground.height - shooter.radius - 5;
+      startDragX = shooter.x;
+      startDragY = shooter.y;
+      initializeTargets();
+    }
+
+    function initializeTargets() {
+      targets = [];
+      const numTargets = 5;
+      const targetWidth = 20;
+      const targetHeight = 20;
+      const minDistanceFromShooter = 80;
+      const minSpacingBetweenTargets = 80;
+      const targetNames = ["Free Research", "Free Speech", "Trias Politica", "Unbiased Elections", "Human Rights"];
+
+      for (let i = 0; i < numTargets; i++) {
+        let valid = false;
+        let x = 0;
+        let loopCount = 0;
+
+        while (!valid && loopCount < 100) {
+          loopCount++;
+          x = Math.random() * (canvas.width - targetWidth);
+          valid = Math.abs(x - shooter.x) > minDistanceFromShooter;
+          if (valid) {
+            for (const t of targets) {
+              if (Math.abs(x - t.x) < minSpacingBetweenTargets) {
+                valid = false;
+                break;
+              }
+            }
+          }
+        }
+
+        const fromTop = Math.random() < 0.5;
+        const maxBricks = 7;
+        const bricks = Math.floor(Math.random() * 2) + 3;
+
+        targets.push({
+          x: x,
+          y: fromTop ? ground.height : canvas.height - ground.height,
+          width: targetWidth,
+          height: targetHeight,
+          bricks: bricks,
+          maxBricks: maxBricks,
+          fromTop: fromTop,
+          label: targetNames[i] || `Target ${i + 1}`,
+          color: '#fefef0'
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = ground.color;
+      ctx.fillRect(-20, canvas.height - ground.height, canvas.width + 40, ground.height);
+      ctx.fillRect(-20, 0, canvas.width + 40, ground.height);
+
+      ctx.beginPath();
+      ctx.arc(shooter.x, shooter.y, shooter.radius, 0, Math.PI * 2);
+      ctx.fillStyle = shooter.color;
+      ctx.fill();
+      ctx.strokeStyle = '#dbd36e';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      if (isDragging) {
+        ctx.beginPath();
+        ctx.moveTo(startDragX, startDragY);
+        ctx.lineTo(currentDragX, currentDragY);
+        ctx.strokeStyle = 'rgba(144, 140, 100, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      projectiles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      targets.forEach(t => {
+        for (let i = 0; i < t.bricks; i++) {
+          const brickY = t.fromTop ? t.y + i * 20 : t.y - (i + 1) * 20;
+          ctx.fillStyle = t.color;
+          ctx.fillRect(t.x, brickY, t.width, 20);
+          ctx.strokeStyle = 'rgba(144, 140, 100, 0.8)';
+          ctx.strokeRect(t.x, brickY, t.width, 20);
+        }
+      const boxWidth = 80;
+      const fontSize = 15;
+      const lineHeight = fontSize;
+      const padding = 6;
+      ctx.font = `${fontSize}px Arial`;
+      const labelX = t.x + t.width / 2;
+
+      // Wrap label into lines
+      const words = t.label.split(' ');
+      let lines = [];
+      let line = '';
+
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        const testWidth = ctx.measureText(testLine).width;
+        if (testWidth > boxWidth - 2 * padding && line !== '') {
+          lines.push(line.trim());
+          line = words[i] + ' ';
+        } else {
+          line = testLine;
+        }
+      }
+      lines.push(line.trim());
+
+      // Final box height = total line height + top/bottom padding
+      const contentHeight = lines.length * lineHeight;
+      const boxHeight = contentHeight + 2 * padding;
+
+      // Position above or below target
+      const boxY = t.fromTop
+        ? ground.height - boxHeight - 2
+        : canvas.height - ground.height + 2;
+
+      // Draw padded background box
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(labelX - boxWidth / 2, boxY, boxWidth, boxHeight);
+      ctx.strokeStyle = '#000';
+      ctx.strokeRect(labelX - boxWidth / 2, boxY, boxWidth, boxHeight);
+
+      // Draw each line of text, padded
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      const startY = boxY + padding;
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], labelX, startY + i * lineHeight);
+      }
+      });
+    }
+
+    function update() {
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        p.velocityY += GRAVITY;
+        p.x += p.velocityX;
+        p.y += p.velocityY;
+
+        if (p.y + p.radius > canvas.height - ground.height) {
+          p.y = canvas.height - ground.height - p.radius;
+          p.velocityY *= -0.5;
+          p.velocityX *= 0.5;
+          if (Math.abs(p.velocityY) < 0.5 && Math.abs(p.velocityX) < 0.5) {
+            projectiles.splice(i, 1);
+            continue;
+          }
+        }
+
+        if (p.x - p.radius < 0 || p.x + p.radius > canvas.width) {
+          p.velocityX *= -1;
+          p.x = Math.max(p.radius, Math.min(p.x, canvas.width - p.radius));
+        }
+        if (p.y - p.radius < 0) {
+          p.velocityY *= -1;
+          p.y = p.radius;
+        }
+
+        for (let j = targets.length - 1; j >= 0; j--) {
+          const t = targets[j];
+          const BRICK_HEIGHT = 20; // Should match your actual BRICK_HEIGHT
+
+          for (let j = targets.length - 1; j >= 0; j--) {
+            const t = targets[j];
+            const targetIndex = j + 1;
+            const abilities = characterAbilities[selectedCharacter];
+            let hit = false;
+
+            for (let b = 0; b < t.bricks; b++) {
+              const brickY = t.fromTop
+                ? t.y + b * BRICK_HEIGHT
+                : t.y - (b + 1) * BRICK_HEIGHT;
+              const brickTop = brickY;
+              const brickBottom = brickY + BRICK_HEIGHT;
+
+              const hitBrick =
+                p.x + p.radius > t.x &&
+                p.x - p.radius < t.x + t.width &&
+                p.y + p.radius > brickTop &&
+                p.y - p.radius < brickBottom;
+
+              if (hitBrick) {
+                hit = true;
+
+                if (abilities) {
+                  if (abilities.canBuild.includes(targetIndex)) {
+                    if (t.bricks < t.maxBricks) t.bricks++;
+                  } else if (abilities.canDestroy.includes(targetIndex)) {
+                    t.bricks--;
+                  }
+                }
+                score += 10;
+                scoreDisplay.textContent = `Score: ${score}`;
+                projectiles.splice(i, 1);
+                break;
+              }
+            }
+
+            if (hit) break;
+          }
+        }
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    canvas.addEventListener('mousedown', e => {
+      const dist = Math.hypot(e.offsetX - shooter.x, e.offsetY - shooter.y);
+      if (dist < shooter.radius * 2) {
+        isDragging = true;
+        startDragX = shooter.x;
+        startDragY = shooter.y;
+        currentDragX = e.offsetX;
+        currentDragY = e.offsetY;
+      }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      currentDragX = e.offsetX;
+      currentDragY = e.offsetY;
+    });
+
+    canvas.addEventListener('mouseup', e => {
+      if (!isDragging) return;
+      isDragging = false;
+      const dx = startDragX - currentDragX;
+      const dy = startDragY - currentDragY;
+      const mag = Math.sqrt(dx * dx + dy * dy);
+      const speed = Math.min(mag / 5, MAX_SHOT_POWER);
+      projectiles.push({
+        x: shooter.x,
+        y: shooter.y,
+        radius: 8,
+        velocityX: (dx / mag) * speed || 0,
+        velocityY: (dy / mag) * speed || 0,
+        color: '#feb2b2'
+      });
+    });
+
+    resetButton.addEventListener('click', () => {
+      score = 0;
+      scoreDisplay.textContent = `Score: ${score}`;
+      projectiles = [];
+      initializeTargets();
+      draw();
+      hideMessageBox();
+    });
+
+    messageBoxOkButton.addEventListener('click', hideMessageBox);
+
+    window.onload = () => {
+      resizeCanvas();
+      initializeTargets();
+      gameLoop();
+    };
+
+    window.addEventListener('resize', resizeCanvas);
+  </script>
+</body>
+</html>
